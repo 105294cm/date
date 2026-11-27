@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>工作日（週一至週五）日期產生器</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 24px 16px;
+      background: #f4f6f9;
+      color: #1f2937;
+    }
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.35rem;
+    }
+    .subtitle {
+      margin: 0 0 20px;
+      font-size: 0.92rem;
+      color: #6b7280;
+    }
+    .year-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+    }
+    .year-row > span {
+      font-weight: 600;
+      font-size: 0.95rem;
+      white-space: nowrap;
+    }
+    .picker-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .group {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .group-title {
+      font-weight: 600;
+      margin-bottom: 10px;
+      font-size: 0.95rem;
+    }
+    .select-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* 自訂下拉選單 */
+    .dd {
+      position: relative;
+      flex: 1;
+    }
+    .dd-btn {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #111827;
+      font-size: 0.92rem;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .dd-btn:hover {
+      border-color: #9ca3af;
+    }
+    .dd-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      max-height: 210px;
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+      z-index: 50;
+    }
+    .dd.open .dd-menu {
+      display: block;
+    }
+    .dd-item {
+      padding: 8px 10px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: #1f2937;
+    }
+    .dd-item:hover {
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+    .dd-item.selected {
+      background: #dbeafe;
+      font-weight: 600;
+      color: #1e40af;
+    }
+
+    .option-row {
+      margin-bottom: 18px;
+      padding: 10px 12px;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      font-size: 0.92rem;
+    }
+    .option-row label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      color: #1e3a8a;
+      font-weight: 500;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .action-btn {
+      padding: 9px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: #fff;
+    }
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #1f2937;
+    }
+    .result-box {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      background: #fcfcfd;
+      min-height: 90px;
+    }
+    .result-meta {
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+    .result-output {
+      font-size: 1rem;
+      line-height: 1.7;
+      word-break: break-word;
+      color: #111827;
+      user-select: all;
+    }
+    .excluded-note {
+      margin-top: 10px;
+      font-size: 0.82rem;
+      color: #b45309;
+    }
+    @media (max-width: 520px) {
+      .picker-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>週一至週五日期篩選器</h1>
+    <p class="subtitle">選擇年份與起訖月日，下方會列出期間所有週一到週五（不含六、日與指定年份國定假日）。</p>
+
+    <div class="year-row">
+      <span>選取年份</span>
+      <div class="dd" id="ddYear">
+        <button type="button" class="dd-btn"><span class="dd-label">2026 年</span><span>▾</span></button>
+        <div class="dd-menu"></div>
+      </div>
+    </div>
+
+    <div class="picker-grid">
+      <div class="group">
+        <div class="group-title">起始日期</div>
+        <div class="select-row">
+          <div class="dd" id="ddStartMonth">
+            <button type="button" class="dd-btn"><span class="dd-label">11 月</span><span>▾</span></button>
+            <div class="dd-menu"></div>
+          </div>
+          <div class="dd" id="ddStartDay">
+            <button type="button" class="dd-btn"><span class="dd-label">1 日</span><span>▾</span></button>
+            <div class="dd-menu"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">結束日期</div>
+        <div class="select-row">
+          <div class="dd" id="ddEndMonth">
+            <button type="button" class="dd-btn"><span class="dd-label">11 月</span><span>▾</span></button>
+            <div class="dd-menu"></div>
+          </div>
+          <div class="dd" id="ddEndDay">
+            <button type="button" class="dd-btn"><span class="dd-label">5 日</span><span>▾</span></button>
+            <div class="dd-menu"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="option-row">
+      <label>
+        <input type="checkbox" id="excludeHolidays" checked />
+        <span id="holidayToggleLabel">排除 2026 年國定假日與補假</span>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button class="action-btn btn-primary" id="generateBtn" type="button">產生日期</button>
+      <button class="action-btn btn-secondary" id="copyBtn" type="button">複製結果</button>
+    </div>
+
+    <div class="result-box">
+      <div class="result-meta" id="resultMeta">共 0 天</div>
+      <div class="result-output" id="resultOutput"></div>
+      <div class="excluded-note" id="excludedNote"></div>
+    </div>
+  </div>
+
+  <script>
+    const HOLIDAYS_BY_YEAR = {
+      2025: {
+        "2025-01-01": "元旦",
+        "2025-01-27": "小年夜",
+        "2025-01-28": "除夕",
+        "2025-01-29": "春節初一",
+        "2025-01-30": "春節初二",
+        "2025-01-31": "春節初三",
+        "2025-02-28": "和平紀念日",
+        "2025-04-03": "兒童節",
+        "2025-04-04": "清明節",
+        "2025-05-01": "勞動節",
+        "2025-05-30": "端午節調整放假",
+        "2025-09-29": "教師節補假",
+        "2025-10-06": "中秋節補假",
+        "2025-10-10": "國慶日",
+        "2025-10-24": "光復節補假",
+        "2025-12-25": "行憲紀念日"
+      },
+      2026: {
+        "2026-01-01": "元旦",
+        "2026-02-16": "除夕",
+        "2026-02-17": "春節初一",
+        "2026-02-18": "春節初二",
+        "2026-02-19": "春節初三",
+        "2026-02-20": "小年夜補假",
+        "2026-02-27": "和平紀念日補假",
+        "2026-04-03": "兒童節補假",
+        "2026-04-06": "清明節補假",
+        "2026-05-01": "勞動節",
+        "2026-06-19": "端午節",
+        "2026-09-25": "中秋節",
+        "2026-09-28": "孔子誕辰紀念日／教師節",
+        "2026-10-09": "國慶日補假",
+        "2026-10-26": "臺灣光復暨金門古寧頭大捷紀念日補假",
+        "2026-12-25": "行憲紀念日"
+      },
+      2027: {
+        "2027-01-01": "元旦",
+        "2027-02-05": "除夕",
+        "2027-02-08": "春節初二",
+        "2027-02-09": "春節初三",
+        "2027-02-10": "春節初四補假",
+        "2027-03-01": "和平紀念日補假",
+        "2027-04-02": "兒童節補假",
+        "2027-04-05": "清明節補假",
+        "2027-06-09": "端午節",
+        "2027-09-15": "中秋節",
+        "2027-09-28": "孔子誕辰紀念日／教師節",
+        "2027-10-11": "國慶日補假",
+        "2027-10-25": "臺灣光復暨金門古寧頭大捷紀念日"
+      }
+    };
+
+    const state = {
+      year: 2026,
+      startMonth: 11,
+      startDay: 1,
+      endMonth: 11,
+      endDay: 5
+    };
+
+    const excludeHolidaysEl = document.getElementById("excludeHolidays");
+    const holidayToggleLabelEl = document.getElementById("holidayToggleLabel");
+    const resultMetaEl = document.getElementById("resultMeta");
+    const resultOutputEl = document.getElementById("resultOutput");
+    const excludedNoteEl = document.getElementById("excludedNote");
+    const generateBtn = document.getElementById("generateBtn");
+    const copyBtn = document.getElementById("copyBtn");
+
+    function getDaysInMonth(year, month) {
+      return new Date(year, month, 0).getDate();
+    }
+
+    function formatIsoDate(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function closeAllDropdowns(exceptId = null) {
+      document.querySelectorAll(".dd.open").forEach((el) => {
+        if (el.id !== exceptId) el.classList.remove("open");
+      });
+    }
+
+    function renderDropdown(ddId, items, selectedValue, onSelect) {
+      const dd = document.getElementById(ddId);
+      const btn = dd.querySelector(".dd-btn");
+      const labelEl = dd.querySelector(".dd-label");
+      const menuEl = dd.querySelector(".dd-menu");
+
+      const currentItem = items.find((it) => it.value === selectedValue) || items[0];
+      labelEl.textContent = currentItem ? currentItem.label : "";
+
+      menuEl.innerHTML = "";
+      items.forEach((it) => {
+        const div = document.createElement("div");
+        div.className = "dd-item" + (it.value === selectedValue ? " selected" : "");
+        div.textContent = it.label;
+        div.addEventListener("click", (e) => {
+          e.stopPropagation();
+          dd.classList.remove("open");
+          onSelect(it.value);
+        });
+        menuEl.appendChild(div);
+      });
+
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const isOpen = dd.classList.contains("open");
+        closeAllDropdowns(ddId);
+        dd.classList.toggle("open", !isOpen);
+      };
+    }
+
+    function refreshAllDropdowns() {
+      const years = [];
+      for (let y = 2020; y <= 2030; y++) {
+        years.push({ value: y, label: `${y} 年` });
+      }
+      renderDropdown("ddYear", years, state.year, (val) => {
+        state.year = val;
+        state.startDay = Math.min(state.startDay, getDaysInMonth(state.year, state.startMonth));
+        state.endDay = Math.min(state.endDay, getDaysInMonth(state.year, state.endMonth));
+        refreshAllDropdowns();
+        updateWeekdays();
+      });
+
+      const months = [];
+      for (let m = 1; m <= 12; m++) {
+        months.push({ value: m, label: `${m} 月` });
+      }
+
+      renderDropdown("ddStartMonth", months, state.startMonth, (val) => {
+        state.startMonth = val;
+        state.startDay = Math.min(state.startDay, getDaysInMonth(state.year, state.startMonth));
+        refreshAllDropdowns();
+        updateWeekdays();
+      });
+
+      const startMaxDay = getDaysInMonth(state.year, state.startMonth);
+      const startDays = [];
+      for (let d = 1; d <= startMaxDay; d++) {
+        startDays.push({ value: d, label: `${d} 日` });
+      }
+      renderDropdown("ddStartDay", startDays, state.startDay, (val) => {
+        state.startDay = val;
+        refreshAllDropdowns();
+        updateWeekdays();
+      });
+
+      renderDropdown("ddEndMonth", months, state.endMonth, (val) => {
+        state.endMonth = val;
+        state.endDay = Math.min(state.endDay, getDaysInMonth(state.year, state.endMonth));
+        refreshAllDropdowns();
+        updateWeekdays();
+      });
+
+      const endMaxDay = getDaysInMonth(state.year, state.endMonth);
+      const endDays = [];
+      for (let d = 1; d <= endMaxDay; d++) {
+        endDays.push({ value: d, label: `${d} 日` });
+      }
+      renderDropdown("ddEndDay", endDays, state.endDay, (val) => {
+        state.endDay = val;
+        refreshAllDropdowns();
+        updateWeekdays();
+      });
+
+      const hasHolidayData = Boolean(HOLIDAYS_BY_YEAR[state.year]);
+      holidayToggleLabelEl.textContent = hasHolidayData
+        ? `排除 ${state.year} 年國定假日與補假`
+        : `排除 ${state.year} 年國定假日（尚未設定該年假日）`;
+    }
+
+    function updateWeekdays() {
+      const { year, startMonth, startDay, endMonth, endDay } = state;
+      const excludeHolidays = excludeHolidaysEl.checked;
+
+      const startDate = new Date(year, startMonth - 1, startDay);
+      let endYear = year;
+      if (endMonth < startMonth || (endMonth === startMonth && endDay < startDay)) {
+        endYear = year + 1;
+      }
+      const endDate = new Date(endYear, endMonth - 1, endDay);
+
+      const weekdays = [];
+      const skippedHolidays = [];
+      const cur = new Date(startDate);
+
+      while (cur <= endDate) {
+        const dow = cur.getDay();
+        if (dow >= 1 && dow <= 5) {
+          const curYear = cur.getFullYear();
+          const yearHolidays = HOLIDAYS_BY_YEAR[curYear] || {};
+          const holidayName = yearHolidays[formatIsoDate(cur)];
+          const label = `${cur.getMonth() + 1}/${cur.getDate()}`;
+
+          if (excludeHolidays && holidayName) {
+            skippedHolidays.push(
+              curYear !== year ? `${curYear}/${label}（${holidayName}）` : `${label}（${holidayName}）`
+            );
+          } else {
+            weekdays.push(label);
+          }
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+
+      const spanNote = endYear > year ? "（跨年計算）" : "";
+      const holidayStatus = excludeHolidays ? `已排除 ${year} 國定假日` : "未排除國定假日";
+      resultMetaEl.textContent = `${year} 年｜區間 ${startMonth}/${startDay} ～ ${endMonth}/${endDay}${spanNote}｜${holidayStatus}｜共 ${weekdays.length} 天`;
+      resultOutputEl.textContent = weekdays.length > 0 ? weekdays.join(", ") : "此區間沒有符合的日期";
+      excludedNoteEl.textContent = skippedHolidays.length > 0
+        ? `已排除國定假日：${skippedHolidays.join("、")}`
+        : "";
+    }
+
+    document.addEventListener("click", () => closeAllDropdowns());
+    excludeHolidaysEl.addEventListener("change", updateWeekdays);
+    generateBtn.addEventListener("click", updateWeekdays);
+    copyBtn.addEventListener("click", async () => {
+      const text = resultOutputEl.textContent;
+      if (!text) return;
+      try {
+        await navigator.clipboard.writeText(text);
+        const oldText = copyBtn.textContent;
+        copyBtn.textContent = "已複製";
+        setTimeout(() => (copyBtn.textContent = oldText), 1200);
+      } catch {}
+    });
+
+    refreshAllDropdowns();
+    updateWeekdays();
+  </script>
+</body>
+</html>
